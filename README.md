@@ -12,13 +12,6 @@ npx claude-code-cost-widget enable
 npx claude-code-cost-widget disable
 ```
 
-Until the package is published to npm, run it from GitHub (needs access to this
-private repository):
-
-```sh
-npx github:johnstonmatt/claude-code-cost-widget enable
-```
-
 Restart Claude Code if the footer doesn't appear on the next refresh. Node 20+
 on macOS or Linux; no dependencies.
 
