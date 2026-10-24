@@ -18,12 +18,16 @@ export function shellQuote(value) {
   return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-/** True when `value` is a status line that runs the script at `script`. */
+/** True when `value` is a status line that runs `script` (a path or paths). */
 export function isWidgetStatusLine(value, script) {
   if (!value || typeof value !== "object") return false;
-  return value.type === "command" && typeof value.command === "string" &&
-    (value.command.endsWith(` ${shellQuote(script)}`) ||
-      value.command.endsWith(` ${script}`));
+  if (value.type !== "command" || typeof value.command !== "string") {
+    return false;
+  }
+  return [script].flat().some((path) =>
+    value.command.endsWith(` ${shellQuote(path)}`) ||
+    value.command.endsWith(` ${path}`)
+  );
 }
 
 export function installStatusLine(directory, command, script) {

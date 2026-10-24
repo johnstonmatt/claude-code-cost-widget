@@ -1,15 +1,26 @@
 import { test } from "node:test";
-import { deepStrictEqual as equal, rejects } from "node:assert/strict";
+import { deepStrictEqual as equal, match, rejects } from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { shellQuote } from "../src/settings.js";
 import {
   claudeConfigDirectory,
   disable,
   enable,
+  launcherPath,
+  launcherScript,
   scriptDirectory,
   scriptPath,
 } from "../src/widget.js";
@@ -38,7 +49,7 @@ test("enable installs a runnable copy outside the package and disable removes it
     const settings = JSON.parse(await readFile(result.settings, "utf8"));
     equal(settings.statusLine, {
       type: "command",
-      command: `${shellQuote(process.execPath)} ${shellQuote(scriptPath(dir))}`,
+      command: `'/bin/sh' ${shellQuote(launcherPath(dir))}`,
     });
     // Run the configured command the way Claude Code does: through a shell.
     const run = spawnSync("sh", ["-c", settings.statusLine.command], {
@@ -64,29 +75,73 @@ test("enable installs a runnable copy outside the package and disable removes it
     equal((await disable(dir)).changed, false);
   }));
 
-test("enable rewrites the command after a Node path change; disable still matches", () =>
+test("enable keeps the command stable across Node changes and migrates old installs", () =>
   withDir(async (dir) => {
-    await enable(dir);
-    const moved = await enable(dir, { node: process.execPath });
-    equal(moved.changed, false);
-    // Simulate an install made with an older Node binary path.
     const settings = join(dir, "settings.json");
-    const value = JSON.parse(await readFile(settings, "utf8"));
-    value.statusLine.command = `'/old/node' ${shellQuote(scriptPath(dir))}`;
-    await writeFile(settings, JSON.stringify(value));
+    await enable(dir);
+    const command = JSON.parse(await readFile(settings, "utf8")).statusLine;
+    equal((await enable(dir)).changed, false);
+    // A different Node binary only rewrites the launcher, not settings.json.
+    const other = join(dir, "other node");
+    await symlink(process.execPath, other);
+    equal((await enable(dir, { node: other })).changed, true);
+    equal(JSON.parse(await readFile(settings, "utf8")).statusLine, command);
+    match(await readFile(launcherPath(dir), "utf8"), /other node/);
+    // Installs before the launcher ran statusline.mjs with a pinned Node path.
+    const legacy = {
+      type: "command",
+      command: `'/old/node' ${shellQuote(scriptPath(dir))}`,
+    };
+    await writeFile(settings, JSON.stringify({ statusLine: legacy }));
     equal((await enable(dir)).changed, true);
-    value.statusLine.command = `'/old/node' ${shellQuote(scriptPath(dir))}`;
-    await writeFile(settings, JSON.stringify(value));
+    equal(JSON.parse(await readFile(settings, "utf8")).statusLine, command);
+    await writeFile(settings, JSON.stringify({ statusLine: legacy }));
     equal((await disable(dir)).changed, true);
     equal(JSON.parse(await readFile(settings, "utf8")), {});
+    equal(await exists(scriptDirectory(dir)), false);
+  }));
+
+test("the launcher falls back to node on PATH, then explains how to recover", () =>
+  withDir(async (dir) => {
+    await enable(dir);
+    const launcher = join(dir, "launcher.sh");
+    await writeFile(launcher, launcherScript("/removed/node", scriptPath(dir)));
+    const run = (PATH) =>
+      spawnSync("/bin/sh", [launcher], {
+        env: { PATH },
+        input: '{"cost":{"total_cost_usd":0.5}}',
+        encoding: "utf8",
+      }).stdout.trim();
+    equal(
+      run(dirname(process.execPath)),
+      "Claude session estimate $0.50000 | latest response unavailable",
+    );
+    const empty = join(dir, "empty");
+    await mkdir(empty);
+    equal(
+      run(empty),
+      "Cost widget: Node.js not found. Run: npx claude-code-cost-widget enable",
+    );
   }));
 
 test("a failed smoke test leaves settings unchanged", () =>
   withDir(async (dir) => {
     const original = '{"theme":"dark"}';
     await writeFile(join(dir, "settings.json"), original);
-    await rejects(() => enable(dir, { node: "/bin/false" }), /smoke test/);
+    // An executable "node" that fails, so the launcher can't fall back.
+    const broken = join(dir, "broken-node");
+    await writeFile(broken, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    await rejects(() => enable(dir, { node: broken }), /smoke test/);
     equal(await readFile(join(dir, "settings.json"), "utf8"), original);
+    // A failed re-enable must not break a working launcher either.
+    await enable(dir);
+    const launcher = await readFile(launcherPath(dir), "utf8");
+    await rejects(() => enable(dir, { node: broken }), /smoke test/);
+    equal(await readFile(launcherPath(dir), "utf8"), launcher);
+    equal(
+      (await readdir(scriptDirectory(dir))).sort(),
+      ["format.mjs", "statusline.mjs", "statusline.sh"],
+    );
   }));
 
 test("disable leaves a replacement status line alone and removes unused scripts", () =>
@@ -100,6 +155,7 @@ test("disable leaves a replacement status line alone and removes unused scripts"
     equal((await disable(dir)).changed, false);
     equal(await readFile(settings, "utf8"), replacement);
     equal(await exists(scriptPath(dir)), false);
+    equal(await exists(launcherPath(dir)), false);
     // Unrecognized files keep the directory in place.
     equal(await exists(join(scriptDirectory(dir), "user-notes.txt")), true);
   }));

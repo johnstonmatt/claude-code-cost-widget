@@ -27,15 +27,20 @@ on macOS or Linux; no dependencies.
 1. Copies the status-line script to `~/.claude/claude-code-cost-widget/` (or
    `$CLAUDE_CONFIG_DIR/claude-code-cost-widget/`). It lives there, not in the
    npx cache, so clearing the cache doesn't break the footer.
-2. Smoke-tests the copied script with the current Node binary. If that fails,
-   settings are not touched.
-3. Sets `statusLine` in `settings.json` to run that script with the absolute
-   path of the current Node binary. Every other setting is preserved, and the
-   original file is backed up once to `settings.json.claude-code-cost-widget-backup`.
+2. Writes a small launcher, `statusline.sh`, beside it. The launcher runs the
+   script with the Node binary that ran `enable`, and falls back to whichever
+   `node` is on `PATH` if that binary is gone.
+3. Smoke-tests the launcher the way Claude Code will run it. If that fails,
+   neither settings nor an existing launcher are touched.
+4. Sets `statusLine` in `settings.json` to `/bin/sh` running the launcher.
+   Every other setting is preserved, and the original file is backed up once
+   to `settings.json.claude-code-cost-widget-backup`.
 
-Running `enable` again is safe. If you upgrade or remove the Node version that
-was active when you enabled it (for example with nvm or mise), run `enable`
-again to point the footer at the new binary.
+Running `enable` again is safe. Upgrading or removing the Node version you
+enabled with (for example with nvm or mise) doesn't break the footer while
+another `node` is on `PATH`. If none is, the footer says so instead of going
+blank; running `enable` again with a working Node fixes it. Installs from
+before the launcher existed are migrated by running `enable` again.
 
 `settings.json` symlinks are followed and preserved: the resolved file is
 updated and the backup sits beside it. Dangling symlinks, malformed settings,
