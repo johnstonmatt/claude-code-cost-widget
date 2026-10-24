@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Show Claude Code's session cost estimate and latest token usage in its status line.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnstonmatt/claude-code-cost-widget.git"
+  },
   "bin": {
     "claude-code-cost-widget": "bin/cli.js"
   },

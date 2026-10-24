@@ -83,5 +83,5 @@ jobs:
           fi
           rm -f "$NPM_VIEW_STDERR"
 
-          # No --provenance: npm only generates provenance for public repos.
-          npm publish --access public
+          # Provenance requires package.json "repository" to match this repo.
+          npm publish --access public --provenance
