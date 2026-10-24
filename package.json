@@ -1,0 +1,24 @@
+{
+  "name": "claude-code-cost-widget",
+  "version": "0.1.0",
+  "description": "Show Claude Code's session cost estimate and latest token usage in its status line.",
+  "type": "module",
+  "bin": {
+    "claude-code-cost-widget": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "license": "UNLICENSED"
+}
