@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v1.0.0...claude-code-cost-widget-v1.0.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* add repository field so npm can verify provenance ([0b8456c](https://github.com/johnstonmatt/claude-code-cost-widget/commit/0b8456cd528e31c4017f6e19b1380ac70044a17a))
+
 ## [1.0.0](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v0.2.0...claude-code-cost-widget-v1.0.0) (2026-10-24)
 
 
