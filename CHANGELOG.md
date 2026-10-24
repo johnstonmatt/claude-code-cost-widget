@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v0.2.0...claude-code-cost-widget-v1.0.0) (2026-10-24)
+
+
+### Miscellaneous Chores
+
+* release 1.0.0 ([7685a3b](https://github.com/johnstonmatt/claude-code-cost-widget/commit/7685a3bb5dc27939fbe79b74ae643044ece4b272))
+
 ## [0.2.0](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v0.1.0...claude-code-cost-widget-v0.2.0) (2026-10-24)
 
 
