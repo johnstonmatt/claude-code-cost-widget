@@ -1,6 +1,6 @@
 {
   "name": "claude-code-cost-widget",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Show Claude Code's session cost estimate and latest token usage in its status line.",
   "type": "module",
   "bin": {
