@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v1.0.1...claude-code-cost-widget-v1.0.2) (2026-10-24)
+
+
+### Bug Fixes
+
+* keep the status line working when the enabling Node binary is removed ([4144c1c](https://github.com/johnstonmatt/claude-code-cost-widget/commit/4144c1c4cfc3c857e743b8e0d3b3727f94c54a73))
+
 ## [1.0.1](https://github.com/johnstonmatt/claude-code-cost-widget/compare/claude-code-cost-widget-v1.0.0...claude-code-cost-widget-v1.0.1) (2026-10-24)
 
 
