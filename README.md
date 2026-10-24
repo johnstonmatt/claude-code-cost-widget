@@ -1,14 +1,21 @@
 # claude-code-cost-widget
 
 Puts Claude Code's session cost estimate and latest-response token usage in its
-status line:
+status line.
+
+### preview
 
 ```text
 Claude session estimate $0.01234 | latest: 15500 in / 1200 out | cached 12.9%
 ```
 
+### usage
+
 ```sh
+# setup
 npx claude-code-cost-widget enable
+
+# teardown
 npx claude-code-cost-widget disable
 ```
 
