@@ -62,3 +62,16 @@ makes no network calls and doesn't read the transcript.
 ```sh
 npm test
 ```
+
+## Releasing
+
+Releases are automated with
+[release-please](https://github.com/googleapis/release-please). Merge to `main`
+with [conventional commit](https://www.conventionalcommits.org/) titles
+(squash-merge PRs): `fix:` bumps the patch version and `feat:` the minor (a
+breaking change also bumps the minor while the version is below 1.0.0).
+release-please keeps a release PR open with the next version and
+`CHANGELOG.md`. Merging it tags the release, creates the GitHub release, and
+publishes to npm from `.github/workflows/release.yml` using
+[trusted publishing](https://docs.npmjs.com/trusted-publishers), so no npm
+token is stored.

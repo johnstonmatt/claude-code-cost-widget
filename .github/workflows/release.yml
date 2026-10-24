@@ -1,0 +1,87 @@
+# release-please opens a release PR from conventional commits on main. Merging
+# it tags the version, creates the GitHub release and publishes to npm through
+# OIDC trusted publishing (no npm token is stored).
+#
+# Actions are pinned to commit SHAs (tag in the trailing comment). Dependabot
+# (.github/dependabot.yml) bumps them.
+
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # required for npm OIDC trusted publishing
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # Uses GITHUB_TOKEN, so the repository must allow Actions to create pull
+      # requests. Release PRs opened this way don't trigger other workflows;
+      # the tests below run again before publishing.
+      - name: Run release-please
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
+
+      # --- Everything below only runs when a release is created ---
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: ${{ steps.release.outputs.release_created }}
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+
+      # Trusted publishing needs npm 11.5.1+; older npm fails with E404 on PUT.
+      # Install in a user-writable prefix to avoid permission issues.
+      - name: Install latest npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          mkdir -p "$HOME/.npm-global"
+          npm config set prefix "$HOME/.npm-global"
+          echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
+          npm install -g npm@latest
+          npm --version
+
+      # No dependencies or build step; just verify before publishing.
+      - name: Test
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm test
+
+      - name: Publish to npm
+        if: ${{ steps.release.outputs.release_created }}
+        run: |
+          set -euo pipefail
+
+          # Idempotency guard: skip if this version is already on npm
+          VERSION=$(node -p "require('./package.json').version")
+          NPM_VIEW_STDERR=$(mktemp)
+          EXISTING=$(npm view "claude-code-cost-widget@$VERSION" version 2>"$NPM_VIEW_STDERR") || STATUS=$?
+          if [ -n "$EXISTING" ]; then
+            echo "Version $VERSION already published, skipping."
+            rm -f "$NPM_VIEW_STDERR"
+            exit 0
+          elif [ "${STATUS:-0}" -ne 0 ] && ! grep -qiE 'E404|not found' "$NPM_VIEW_STDERR"; then
+            cat "$NPM_VIEW_STDERR"
+            rm -f "$NPM_VIEW_STDERR"
+            exit 1
+          fi
+          rm -f "$NPM_VIEW_STDERR"
+
+          # No --provenance: npm only generates provenance for public repos.
+          npm publish --access public
